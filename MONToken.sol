@@ -297,26 +297,219 @@ contract KIP13 is IKIP13 {
     }
 }
 
+/**
+ * @dev Collection of functions related to the address type
+ */
 library Address {
     /**
      * @dev Returns true if `account` is a contract.
      *
-     * This test is non-exhaustive, and there may be false-negatives: during the
-     * execution of a contract's constructor, its address will be reported as
-     * not containing a contract.
-     *
-     * > It is unsafe to assume that an address for which this function returns
+     * [IMPORTANT]
+     * ====
+     * It is unsafe to assume that an address for which this function returns
      * false is an externally-owned account (EOA) and not a contract.
+     *
+     * Among others, `isContract` will return false for the following
+     * types of addresses:
+     *
+     *  - an externally-owned account
+     *  - a contract in construction
+     *  - an address where a contract will be created
+     *  - an address where a contract lived, but was destroyed
+     * ====
      */
     function isContract(address account) internal view returns (bool) {
-        // This method relies in extcodesize, which returns 0 for contracts in
+        // This method relies on extcodesize, which returns 0 for contracts in
         // construction, since the code is only stored at the end of the
         // constructor execution.
 
         uint256 size;
-        // solhint-disable-next-line no-inline-assembly
-        assembly {size := extcodesize(account)}
+        assembly {
+            size := extcodesize(account)
+        }
         return size > 0;
+    }
+
+    /**
+     * @dev Replacement for Solidity's `transfer`: sends `amount` wei to
+     * `recipient`, forwarding all available gas and reverting on errors.
+     *
+     * https://eips.ethereum.org/EIPS/eip-1884[EIP1884] increases the gas cost
+     * of certain opcodes, possibly making contracts go over the 2300 gas limit
+     * imposed by `transfer`, making them unable to receive funds via
+     * `transfer`. {sendValue} removes this limitation.
+     *
+     * https://diligence.consensys.net/posts/2019/09/stop-using-soliditys-transfer-now/[Learn more].
+     *
+     * IMPORTANT: because control is transferred to `recipient`, care must be
+     * taken to not create reentrancy vulnerabilities. Consider using
+     * {ReentrancyGuard} or the
+     * https://solidity.readthedocs.io/en/v0.5.11/security-considerations.html#use-the-checks-effects-interactions-pattern[checks-effects-interactions pattern].
+     */
+    function sendValue(address payable recipient, uint256 amount) internal {
+        require(address(this).balance >= amount, "Address: insufficient balance");
+
+        // (bool success, ) = recipient.call{value: amount}("");
+        (bool success, ) = recipient.call.value(amount)("");
+        require(success, "Address: unable to send value, recipient may have reverted");
+    }
+
+    /**
+     * @dev Performs a Solidity function call using a low level `call`. A
+     * plain `call` is an unsafe replacement for a function call: use this
+     * function instead.
+     *
+     * If `target` reverts with a revert reason, it is bubbled up by this
+     * function (like regular Solidity function calls).
+     *
+     * Returns the raw returned data. To convert to the expected return value,
+     * use https://solidity.readthedocs.io/en/latest/units-and-global-variables.html?highlight=abi.decode#abi-encoding-and-decoding-functions[`abi.decode`].
+     *
+     * Requirements:
+     *
+     * - `target` must be a contract.
+     * - calling `target` with `data` must not revert.
+     *
+     * _Available since v3.1._
+     */
+    function functionCall(address target, bytes memory data) internal returns (bytes memory) {
+        return functionCall(target, data, "Address: low-level call failed");
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`], but with
+     * `errorMessage` as a fallback revert reason when `target` reverts.
+     *
+     * _Available since v3.1._
+     */
+    function functionCall(
+        address target,
+        bytes memory data,
+        string memory errorMessage
+    ) internal returns (bytes memory) {
+        return functionCallWithValue(target, data, 0, errorMessage);
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],
+     * but also transferring `value` wei to `target`.
+     *
+     * Requirements:
+     *
+     * - the calling contract must have an ETH balance of at least `value`.
+     * - the called Solidity function must be `payable`.
+     *
+     * _Available since v3.1._
+     */
+    function functionCallWithValue(
+        address target,
+        bytes memory data,
+        uint256 value
+    ) internal returns (bytes memory) {
+        return functionCallWithValue(target, data, value, "Address: low-level call with value failed");
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCallWithValue-address-bytes-uint256-}[`functionCallWithValue`], but
+     * with `errorMessage` as a fallback revert reason when `target` reverts.
+     *
+     * _Available since v3.1._
+     */
+    function functionCallWithValue(
+        address target,
+        bytes memory data,
+        uint256 value,
+        string memory errorMessage
+    ) internal returns (bytes memory) {
+        require(address(this).balance >= value, "Address: insufficient balance for call");
+        require(isContract(target), "Address: call to non-contract");
+
+        // (bool success, bytes memory returndata) = target.call{value: value}(data);
+        (bool success, bytes memory returndata) = target.call.value(value)(data);
+
+        return verifyCallResult(success, returndata, errorMessage);
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],
+     * but performing a static call.
+     *
+     * _Available since v3.3._
+     */
+    function functionStaticCall(address target, bytes memory data) internal view returns (bytes memory) {
+        return functionStaticCall(target, data, "Address: low-level static call failed");
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],
+     * but performing a static call.
+     *
+     * _Available since v3.3._
+     */
+    function functionStaticCall(
+        address target,
+        bytes memory data,
+        string memory errorMessage
+    ) internal view returns (bytes memory) {
+        require(isContract(target), "Address: static call to non-contract");
+
+        (bool success, bytes memory returndata) = target.staticcall(data);
+        return verifyCallResult(success, returndata, errorMessage);
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-}[`functionCall`],
+     * but performing a delegate call.
+     *
+     * _Available since v3.4._
+     */
+    function functionDelegateCall(address target, bytes memory data) internal returns (bytes memory) {
+        return functionDelegateCall(target, data, "Address: low-level delegate call failed");
+    }
+
+    /**
+     * @dev Same as {xref-Address-functionCall-address-bytes-string-}[`functionCall`],
+     * but performing a delegate call.
+     *
+     * _Available since v3.4._
+     */
+    function functionDelegateCall(
+        address target,
+        bytes memory data,
+        string memory errorMessage
+    ) internal returns (bytes memory) {
+        require(isContract(target), "Address: delegate call to non-contract");
+
+        (bool success, bytes memory returndata) = target.delegatecall(data);
+        return verifyCallResult(success, returndata, errorMessage);
+    }
+
+    /**
+     * @dev Tool to verifies that a low level call was successful, and revert if it wasn't, either by bubbling the
+     * revert reason using the provided one.
+     *
+     * _Available since v4.3._
+     */
+    function verifyCallResult(
+        bool success,
+        bytes memory returndata,
+        string memory errorMessage
+    ) internal pure returns (bytes memory) {
+        if (success) {
+            return returndata;
+        } else {
+            // Look for revert reason and bubble it up if present
+            if (returndata.length > 0) {
+                // The easiest way to bubble the revert reason is using memory via assembly
+
+                assembly {
+                    let returndata_size := mload(returndata)
+                    revert(add(32, returndata), returndata_size)
+                }
+            } else {
+                revert(errorMessage);
+            }
+        }
     }
 }
 
@@ -732,85 +925,6 @@ library Roles {
     }
 }
 
-
-contract MinterRole {
-    using Roles for Roles.Role;
-
-    event MinterAdded(address indexed account);
-    event MinterRemoved(address indexed account);
-
-    Roles.Role private _minters;
-
-    constructor () internal {
-        _addMinter(msg.sender);
-    }
-
-    modifier onlyMinter() {
-        require(isMinter(msg.sender), "MinterRole: caller does not have the Minter role");
-        _;
-    }
-
-    function isMinter(address account) public view returns (bool) {
-        return _minters.has(account);
-    }
-
-    function addMinter(address account) public onlyMinter {
-        _addMinter(account);
-    }
-
-    function renounceMinter() public {
-        _removeMinter(msg.sender);
-    }
-
-    function _addMinter(address account) internal {
-        _minters.add(account);
-        emit MinterAdded(account);
-    }
-
-    function _removeMinter(address account) internal {
-        _minters.remove(account);
-        emit MinterRemoved(account);
-    }
-}
-
-
-/**
- * @dev Extension of `KIP7` that adds a set of accounts with the `MinterRole`,
- * which have permission to mint (create) new tokens as they see fit.
- *
- * At construction, the deployer of the contract is the only minter.
- *
- * See http://kips.klaytn.com/KIPs/kip-7-fungible_token
- */
-contract KIP7Mintable is KIP13, KIP7, MinterRole {
-    /*
-     *     bytes4(keccak256('mint(address,uint256)')) == 0x40c10f19
-     *     bytes4(keccak256('isMinter(address)')) == 0xaa271e1a
-     *     bytes4(keccak256('addMinter(address)')) == 0x983b2d56
-     *     bytes4(keccak256('renounceMinter()')) == 0x98650275
-     *
-     *     => 0x40c10f19 ^ 0xaa271e1a ^ 0x983b2d56 ^ 0x98650275 == 0xeab83e20
-     */
-    bytes4 private constant _INTERFACE_ID_KIP7MINTABLE = 0xeab83e20;
-
-    constructor () public {
-        // register the supported interfaces to conform to KIP17 via KIP13
-        _registerInterface(_INTERFACE_ID_KIP7MINTABLE);
-    }
-
-    /**
-     * @dev See `KIP7._mint`.
-     *
-     * Requirements:
-     *
-     * - the caller must have the `MinterRole`.
-     */
-    function mint(address account, uint256 amount) public onlyMinter returns (bool) {
-        _mint(account, amount);
-        return true;
-    }
-}
-
 contract PauserRole {
     using Roles for Roles.Role;
 
@@ -1111,6 +1225,8 @@ contract KIP7Lockable is KIP7, Ownable {
     }
 
     function unlock(address from, uint256 idx) external returns (bool){
+        require(_locks[from].length > 0, "KIP7Lockable.unlock: from does not exist.");
+        require(_locks[from].length > idx, "KIP7Lockable.unlock: idx does not exist.");
         require(_locks[from][idx].due < block.timestamp, "KIP7Lockable.unlock: cannot unlock before due");
         return _unlock(from, idx);
     }
@@ -1153,6 +1269,20 @@ contract KIP7Lockable is KIP7, Ownable {
         return true;
     }
 
+    function transferFromWithLockUp(address sender, address recipient, uint256 amount, uint256 due)
+    external
+    onlyOwner
+    returns (bool)
+    {
+        require(
+            recipient != address(0),
+            "KIP7Lockable.transferFromWithLockUp: Cannot send to zero address"
+        );
+        _transfer(sender, recipient, amount);
+        _lock(recipient, amount, due);
+        return true;
+    }
+
     function lockInfo(address locked, uint256 index)
     external
     view
@@ -1163,13 +1293,30 @@ contract KIP7Lockable is KIP7, Ownable {
         due = lock.due;
     }
 
+    function listLockInfo(address locked)
+    external
+    view
+    returns (uint256[] memory, uint256[] memory)
+    {
+        uint256[] memory amounts = new uint256[](_locks[locked].length);
+        uint256[] memory dues = new uint256[](_locks[locked].length);
+
+        for (uint i = 0; i < _locks[locked].length; i++) {
+            LockInfo storage lock = _locks[locked][i];
+            amounts[i] = lock.amount;
+            dues[i] = lock.due;
+        }
+
+        return (amounts, dues);
+    }
+
     function totalLocked(address locked) external view returns (uint256 amount, uint256 length) {
         amount = _totalLocked[locked];
         length = _locks[locked].length;
     }
 }
 
-contract MONToken is KIP7Mintable, KIP7Burnable, KIP7Pausable, KIP7Metadata, KIP7Lockable, Freezable {
+contract MONToken is KIP7Burnable, KIP7Pausable, KIP7Metadata, KIP7Lockable, Freezable {
     constructor(string memory name, string memory symbol, uint8 decimals, uint256 initialSupply) KIP7Metadata(name, symbol, decimals) public {
         _mint(msg.sender, initialSupply);
     }
@@ -1215,5 +1362,161 @@ contract MONToken is KIP7Mintable, KIP7Burnable, KIP7Pausable, KIP7Metadata, KIP
         );
         _approve(msg.sender, spender, amount);
         return true;
+    }
+}
+
+/**
+ * @title SafeKIP7
+ * @dev Wrappers around KIP7 operations that throw on failure (when the token
+ * contract returns false). Tokens that return no value (and instead revert or
+ * throw on failure) are also supported, non-reverting calls are assumed to be
+ * successful.
+ * To use this library you can add a `using SafeKIP7 for IKIP7;` statement to your contract,
+ * which allows you to call the safe operations as `token.safeTransfer(...)`, etc.
+ */
+library SafeKIP7 {
+    using Address for address;
+
+    function safeTransferTimeLock(
+        IKIP7 token,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transfer.selector, to, value));
+    }
+
+    function safeTransferFromTimeLock(
+        IKIP7 token,
+        address from,
+        address to,
+        uint256 value
+    ) internal {
+        _callOptionalReturn(token, abi.encodeWithSelector(token.transferFrom.selector, from, to, value));
+    }
+
+    /**
+     * @dev Deprecated. This function has issues similar to the ones found in
+     * {IKIP7-approve}, and its usage is discouraged.
+     *
+     * Whenever possible, use {safeIncreaseAllowance} and
+     * {safeDecreaseAllowance} instead.
+     */
+    function safeApprove(
+        IKIP7 token,
+        address spender,
+        uint256 value
+    ) internal {
+        // safeApprove should only be called when setting an initial allowance,
+        // or when resetting it to zero. To increase and decrease it, use
+        // 'safeIncreaseAllowance' and 'safeDecreaseAllowance'
+        require(
+            (value == 0) || (token.allowance(address(this), spender) == 0),
+            "SafeKIP7: approve from non-zero to non-zero allowance"
+        );
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, value));
+    }
+
+    function safeIncreaseAllowance(
+        IKIP7 token,
+        address spender,
+        uint256 value
+    ) internal {
+        uint256 newAllowance = token.allowance(address(this), spender) + value;
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+    }
+
+    function safeDecreaseAllowance(
+        IKIP7 token,
+        address spender,
+        uint256 value
+    ) internal {
+        // unchecked {
+        uint256 oldAllowance = token.allowance(address(this), spender);
+        require(oldAllowance >= value, "SafeKIP7: decreased allowance below zero");
+        uint256 newAllowance = oldAllowance - value;
+        _callOptionalReturn(token, abi.encodeWithSelector(token.approve.selector, spender, newAllowance));
+        // }
+    }
+
+    /**
+     * @dev Imitates a Solidity high-level call (i.e. a regular function call to a contract), relaxing the requirement
+     * on the return value: the return value is optional (but if data is returned, it must not be false).
+     * @param token The token targeted by the call.
+     * @param data The call data (encoded using abi.encode or one of its variants).
+     */
+    function _callOptionalReturn(IKIP7 token, bytes memory data) private {
+        // We need to perform a low level call here, to bypass Solidity's return data size checking mechanism, since
+        // we're implementing it ourselves. We use {Address.functionCall} to perform this call, which verifies that
+        // the target address contains contract code and also asserts for success in the low-level call.
+
+        bytes memory returndata = address(token).functionCall(data, "SafeKIP7: low-level call failed");
+        if (returndata.length > 0) {
+            // Return data is optional
+            require(abi.decode(returndata, (bool)), "SafeKIP7: KIP7 operation did not succeed");
+        }
+    }
+}
+
+/**
+ * @dev A token holder contract that will allow a beneficiary to extract the
+ * tokens after a given release time.
+ *
+ * Useful for simple vesting schedules like "advisors get all of their tokens
+ * after 1 year".
+ */
+contract TokenTimelock {
+    using SafeKIP7 for IKIP7;
+
+    // KIP7 basic token contract being held
+    IKIP7 private _token;
+
+    // beneficiary of tokens after they are released
+    address private _beneficiary;
+
+    // timestamp when token release is enabled
+    uint256 private _releaseTime;
+
+    constructor(
+        IKIP7 token_,
+        address beneficiary_,
+        uint256 releaseTime_
+    ) public {
+        require(releaseTime_ > block.timestamp, "TokenTimelock: release time is before current time");
+        _token = token_;
+        _beneficiary = beneficiary_;
+        _releaseTime = releaseTime_;
+    }
+
+    /**
+     * @return the token being held.
+     */
+    function token() public view returns (IKIP7) {
+        return _token;
+    }
+
+    /**
+     * @return the beneficiary of the tokens.
+     */
+    function beneficiary() public view returns (address) {
+        return _beneficiary;
+    }
+
+    /**
+     * @return the time when the tokens are released.
+     */
+    function releaseTime() public view returns (uint256) {
+        return _releaseTime;
+    }
+
+    /**
+     * @notice Transfers tokens held by timelock to beneficiary.
+     */
+    function release() public {
+        require(block.timestamp >= releaseTime(), "TokenTimelock: current time is before release time");
+
+        uint256 amount = token().balanceOf(address(this));
+        require(amount > 0, "TokenTimelock: no tokens to release");
+
+        token().safeTransferTimeLock(beneficiary(), amount);
     }
 }
